@@ -1,0 +1,31 @@
+.take-profit-container {
+    padding: 1rem;
+    border-radius: 4px;
+    background-color: var(--background-secondary);
+  }
+  
+  .take-profit-value {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+  
+  .take-profit-button {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  
+  .take-profit-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+  
+  .error-message {
+    color: var(--error);
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+  }

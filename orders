@@ -1,0 +1,91 @@
+import React, { useState } from 'react';
+import { useTakeProfit } from '../../hooks/useTakeProfit';
+import TradingCalculator from '../../utils/TradingCalculator';
+
+const TakeProfit = ({ position, onExecuted }) => {
+    const { verifyTakeProfit, executeTakeProfit, isExecuting, error } = useTakeProfit();
+
+    // State to manage position values
+    const [updatedPosition, setUpdatedPosition] = useState(position);
+
+    // Initialize the trading calculator
+    const calculator = new TradingCalculator(
+        position.baseCurrency,
+        position.quoteCurrency,
+        position.lotSize,
+        position.accountBalance
+    );
+
+    const handleFieldChange = (field, value) => {
+        // Update the field value and recalculate other fields
+        const updated = calculator.recalculate(updatedPosition, field, value);
+        setUpdatedPosition({ ...updatedPosition, ...updated });
+    };
+    [3: 14 PM]
+    const handleTakeProfitExecution = async () => {
+        try {
+            const result = await executeTakeProfit(updatedPosition.id, updatedPosition.currentPrice);
+            if (onExecuted) {
+                onExecuted(result);
+            }
+        } catch (err) {
+            console.error('Take profit execution failed:', err);
+        }
+    };
+
+    return (
+        <div className="take-profit-container">
+            <div className="field-group">
+                <label>Take Profit (Price):</label>
+                <input
+                    type="number"
+                    value={updatedPosition.takeProfit}
+                    onChange={(e) => handleFieldChange('price', parseFloat(e.target.value))}
+                />
+                [3:14 PM]
+            </div>
+            <div className="field-group">
+                <label>Stop Loss (Price):</label>
+                <input
+                    type="number"
+                    value={updatedPosition.stopLoss}
+                    onChange={(e) => handleFieldChange('stopLoss', parseFloat(e.target.value))}
+                />
+            </div>
+            <div className="field-group">
+                <label>Pips:</label>
+                <input
+                    type="number"
+                    value={updatedPosition.pips}
+                    onChange={(e) => handleFieldChange('pips', parseFloat(e.target.value))}
+                />
+            </div>
+            <div className="field-group">
+                <label>Percentage:</label>
+                <input
+                    type="number"
+                    value={updatedPosition.percentage}
+                    onChange={(e) => handleFieldChange('percentage', parseFloat(e.target.value))}
+                />
+            </div>
+            <div className="field-group">
+                <label>Balance Impact:</label>
+                <input
+                    type="number"
+                    value={updatedPosition.balanceImpact}
+                    onChange={(e) => handleFieldChange('balanceImpact', parseFloat(e.target.value))}
+                />
+            </div>
+            {error && <div className="error-message">{error}</div>}
+            <button
+                onClick={handleTakeProfitExecution}
+                disabled={isExecuting}
+                className="take-profit-button"
+            >
+                {isExecuting ? 'Executing...' : 'Execute Take Profit'}
+            </button>
+        </div>
+    );
+};
+
+export default TakeProfit;

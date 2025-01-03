@@ -1,0 +1,32 @@
+const formulaController = require('../../control/formulaController');
+
+jest.mock('../../models', () => ({
+  Symbols: {
+    findOne: jest.fn()
+  }
+}));
+
+describe('Currency Pairs Formula Tests', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('should calculate XXX/YYY cross rate correctly', async () => {
+    const { Symbols } = require('../../models');
+    
+    // Mock the USD rate responses
+    Symbols.findOne
+      .mockResolvedValueOnce({ currentPrice: 1.1000 }) // EUR/USD
+      .mockResolvedValueOnce({ currentPrice: 1.2500 }); // GBP/USD
+    
+    const symbol = {
+      code: 'EURGBP',
+      formulaType: 'XXX/YYY',
+      baseCurrency: 'EUR',
+      quoteCurrency: 'GBP'
+    };
+    
+    const result = await formulaController.calculateSymbolPrice(symbol, 0.8800);
+    expect(result).toBeCloseTo(0.8800, 4);
+  });
+});
