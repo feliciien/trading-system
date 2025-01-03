@@ -1,6 +1,15 @@
 {
+  "version": 2,
+  "framework": "create-react-app",
+  "buildCommand": "CI=false npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "outputDirectory": "build",
   "rewrites": [{ 
     "source": "/(.*)", 
     "destination": "/index.html" 
-  }]
+  }],
+  "env": {
+    "REACT_APP_NODE_ENV": "production",
+    "REACT_APP_API_URL": "https://backend.lasertrader.co/api"
+  }
 }
