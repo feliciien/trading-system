@@ -1,0 +1,4 @@
+{
+  "buildCommand": "cd User && CI=false npm install && npm run build",
+  "outputDirectory": "User/build"
+}
