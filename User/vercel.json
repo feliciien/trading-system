@@ -1,28 +1,13 @@
 {
   "version": 2,
   "framework": "create-react-app",
-  "buildCommand": "npm run build",
+  "buildCommand": "CI=false GENERATE_SOURCEMAP=false npm run build",
+  "installCommand": "npm install",
   "outputDirectory": "build",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/favicon.ico"
-    },
-    {
-      "src": "/manifest.json",
-      "dest": "/manifest.json"
-    },
-    {
-      "src": "/robots.txt",
-      "dest": "/robots.txt"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "env": {
