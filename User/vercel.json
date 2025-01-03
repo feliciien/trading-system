@@ -5,9 +5,14 @@
       "destination": "/index.html"
     }
   ],
-  "build": {
-    "env": {
-      "REACT_APP_NODE_ENV": "production"
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/node"
     }
+  ],
+  "env": {
+    "REACT_APP_NODE_ENV": "production",
+    "REACT_APP_API_URL": "https://backend.lasertrader.co/api"
   }
 }
