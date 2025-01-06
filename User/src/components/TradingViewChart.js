@@ -1,13 +1,21 @@
 import { Tune } from '@mui/icons-material';
 import React, { useEffect, useRef } from 'react';
 
-const TradingViewWidget = ({ selectedSymbol, setSelectedSymbol }) => {
+const TradingViewWidget = ({ selectedSymbol = 'EURUSD', setSelectedSymbol }) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
+    if (!selectedSymbol) {
+      console.warn('TradingViewWidget: selectedSymbol is required');
+      return;
+    }
+
     if (containerRef.current) {
+      const containerId = `tradingview_${Math.random().toString(36).substring(7)}`;
+      containerRef.current.id = containerId;
+
       const widget = new window.TradingView.widget({
-        symbol: selectedSymbol,
+        symbol: selectedSymbol.toUpperCase(),
         autosize: true,
         interval: '1',
         timezone: 'America/Argentina/Buenos_Aires',
@@ -15,70 +23,58 @@ const TradingViewWidget = ({ selectedSymbol, setSelectedSymbol }) => {
         style: '1',
         locale: 'en',
         toolbar_bg: '#f1f3f6',
-        // hide_legend: true,
         enable_publishing: false,
         hide_side_toolbar: false,
         allow_symbol_change: false,
         withdateranges: true,
-        container_id: containerRef.current.id
+        container_id: containerId,
+        height: '100%',
+        width: '100%'
       });
-      // widget.chart().createPriceLine({
-      //   price: 80.0,
-      //   color: 'green',
-      //   lineWidth: 2,
-      //   axisLabelVisible: true,
-      //   title: 'P/L 500'
-      // });
+
       // Use setTimeout to ensure the widget is loaded before interaction
       setTimeout(() => {
-        console.log(widget);
         if (widget.chart) {
           widget
             .chart()
             .onSymbolChanged()
             .subscribe(null, (newSymbol) => {
-              setSelectedSymbol(newSymbol);
+              if (newSymbol && setSelectedSymbol) {
+                setSelectedSymbol(newSymbol.toUpperCase());
+              }
             });
+
           widget
             .chart()
             .createPositionLine()
             .onModify(function () {
-              this.setText('onModify called');
+              this.setText('Position Modified');
             })
-            .onReverse('onReverse called', function (text) {
+            .onReverse('Position Reversed', function (text) {
               this.setText(text);
             })
-            .onClose('onClose called', function (text) {
+            .onClose('Position Closed', function (text) {
               this.setText(text);
-            })
-            .setText('PROFIT: 71.1 (3.31%)')
-            .setTooltip('Additional position information')
-            .setProtectTooltip('Protect position')
-            .setCloseTooltip('Close position')
-            .setReverseTooltip('Reverse position')
-            .setQuantity('8.235')
-            .setPrice(160)
-            .setExtendLeft(false)
-            .setLineStyle(0)
-            .setLineLength(25);
+            });
         }
-      }, 1000); // Adjust timeout as needed
-    }
-  }, [selectedSymbol]);
+      }, 1000);
 
-  useEffect(() => {
-    const chart = document.getElementById('tradingview_89893');
-    if (containerRef.current && window.tvWidget) {
-      window.tvWidget.setSymbol(selectedSymbol);
+      return () => {
+        if (widget && typeof widget.remove === 'function') {
+          widget.remove();
+        }
+      };
     }
-  }, [selectedSymbol]);
+  }, [selectedSymbol, setSelectedSymbol]);
 
   return (
-    <div
-      id="trading-view-chart-container"
+    <div 
       ref={containerRef}
-      className="tradingview-widget-container"
-      style={{ width: '100%', height: '100%' }}
+      style={{ 
+        height: '100%',
+        width: '100%',
+        minHeight: '500px'
+      }}
     />
   );
 };

@@ -3,67 +3,119 @@
     background: #fff;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.section {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #eee;
+    border-radius: 6px;
+    background: #f9f9f9;
+}
+
+.section h4 {
+    margin: 0 0 20px;
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.stop-loss {
+    border-left: 4px solid #ff4444;
+}
+
+.take-profit {
+    border-left: 4px solid #00C851;
 }
 
 .field-group {
     margin-bottom: 15px;
+    display: flex;
+    align-items: center;
 }
 
 .field-group label {
-    display: block;
-    margin-bottom: 5px;
+    flex: 0 0 120px;
+    margin-bottom: 0;
     font-weight: 500;
     color: #333;
 }
 
 .field-group input,
 .field-group select {
-    width: 100%;
+    flex: 1;
     padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 .field-group input:focus,
 .field-group select:focus {
     outline: none;
     border-color: #2196f3;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.field-group input.invalid {
+    border-color: #ff4444;
+    background-color: #fff2f2;
 }
 
 .error-message {
-    color: #f44336;
+    color: #ff4444;
     margin: 10px 0;
     font-size: 14px;
+    padding: 8px;
+    background: #fff2f2;
+    border-radius: 4px;
+    border: 1px solid #ffcdd2;
+}
+
+.actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
 }
 
 .take-profit-button,
 .place-order-button {
-    width: 100%;
-    padding: 10px;
-    margin-top: 10px;
+    padding: 10px 20px;
     border: none;
     border-radius: 4px;
-    background-color: #2196f3;
-    color: white;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: background-color 0.3s, transform 0.1s;
 }
 
-.take-profit-button:hover,
-.place-order-button:hover {
-    background-color: #1976d2;
+.take-profit-button {
+    background-color: #00C851;
+    color: white;
 }
 
-.take-profit-button:disabled,
-.place-order-button:disabled {
+.take-profit-button:hover {
+    background-color: #00a844;
+    transform: translateY(-1px);
+}
+
+.take-profit-button:disabled {
     background-color: #ccc;
     cursor: not-allowed;
+    transform: none;
 }
 
-h3 {
-    margin: 20px 0 15px;
-    color: #333;
-    font-size: 18px;
+/* Responsive Design */
+@media (max-width: 600px) {
+    .field-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .field-group label {
+        margin-bottom: 5px;
+    }
 }

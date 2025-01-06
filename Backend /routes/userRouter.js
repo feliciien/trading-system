@@ -20,7 +20,14 @@ console.log('Loading route handlers:', {
 
 const app = express();
 
-router.post("/login", authControl.login);
+// Add debug middleware for login route
+router.post("/login", (req, res, next) => {
+    console.log('Login request received:', {
+        body: req.body,
+        headers: req.headers
+    });
+    next();
+}, authControl.login);
 
 router.post("/createPosition", authmiddleware, tradeControl.createPosition);
 router.post("/cancelPosition", authmiddleware, tradeControl.closePosition);

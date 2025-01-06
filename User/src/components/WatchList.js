@@ -61,15 +61,15 @@ const TradingViewWidget = (props) => {
   const [selectedAsset, setSelectedAsset] = React.useState('');
 
   // Filter rows based on the search query and selected asset
-  const filteredSymbols = props.symbols.filter(
+  const filteredSymbols = (props.symbols || []).filter(
     (row) =>
-      row.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      row && row.name && row.name.toLowerCase().includes((searchQuery || '').toLowerCase()) &&
       (selectedAsset === '' || row.assetName === selectedAsset)
   );
 
   // Get unique asset names for the dropdown menu
   const uniqueAssetNames = [
-    ...new Set(props.symbols.map((row) => row.assetName))
+    ...new Set((props.symbols || []).map((row) => row?.assetName).filter(Boolean))
   ];
 
   return (

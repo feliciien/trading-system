@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTakeProfit } from '../hooks/useTakeProfit';
 import { usePendingOrders } from '../hooks/usePendingOrders';
 import TradingCalculator from '../utils/TradingCalculator';
+import './TradingActions.css';
 
 const TradingActions = ({ position, onExecuted, onOrderPlaced }) => {
     const { verifyTakeProfit, executeTakeProfit, isExecuting, error: takeProfitError } = useTakeProfit();
@@ -9,12 +10,9 @@ const TradingActions = ({ position, onExecuted, onOrderPlaced }) => {
 
     // State to manage position values
     const [updatedPosition, setUpdatedPosition] = useState(position);
-    const [orderDetails, setOrderDetails] = useState({
-        type: '', // buyStop, buyLimit, sellStop, sellLimit
-        price: '',
-        stopLoss: '',
-        takeProfit: '',
-        lotSize: position.lotSize, // Default to the current position lot size
+    const [validation, setValidation] = useState({
+        stopLoss: { isValid: true, message: '' },
+        takeProfit: { isValid: true, message: '' }
     });
 
     // Initialize the trading calculator
@@ -25,29 +23,40 @@ const TradingActions = ({ position, onExecuted, onOrderPlaced }) => {
         position.accountBalance
     );
 
-    const handleFieldChange = (field, value) => {
-        if (['price', 'stopLoss', 'takeProfit', 'pips', 'percentage', 'balanceImpact'].includes(field)) {
-            const updated = calculator.recalculate(updatedPosition, field, value);
-            setUpdatedPosition({ ...updatedPosition, ...updated });
-        } else {
-            if (field === 'lotSize') {
-                // Prevent reducing below 0.01 lots
-                const adjustedValue = Math.max(0.01, parseFloat(value));
-                if (adjustedValue === 0.01) {
-                    // Signal closure if lot size is reduced to 0.01
-                    setOrderDetails({ ...orderDetails, [field]: adjustedValue, closePosition: true });
-                } else {
-                    setOrderDetails({ ...orderDetails, [field]: adjustedValue });
-                }
-            } else {
-                setOrderDetails({ ...orderDetails, [field]: value });
+    useEffect(() => {
+        validateLevels();
+    }, [updatedPosition.stopLoss, updatedPosition.takeProfit]);
+
+    const validateLevels = () => {
+        const result = calculator.validateLevels(
+            position,
+            updatedPosition.stopLoss,
+            updatedPosition.takeProfit
+        );
+
+        setValidation({
+            stopLoss: {
+                isValid: result.isValidStopLoss,
+                message: result.stopLossMessage
+            },
+            takeProfit: {
+                isValid: result.isValidTakeProfit,
+                message: result.takeProfitMessage
             }
+        });
+    };
+
+    const handleFieldChange = (field, value, type = 'takeProfit') => {
+        if (['price', 'pips', 'percentage', 'balance'].includes(field)) {
+            const updated = calculator.recalculate(updatedPosition, field, parseFloat(value), type);
+            setUpdatedPosition({ ...updatedPosition, ...updated });
         }
     };
 
     const handleTakeProfitExecution = async () => {
+        if (!validation.takeProfit.isValid) return;
         try {
-            const result = await executeTakeProfit(updatedPosition.id, updatedPosition.currentPrice);
+            const result = await executeTakeProfit(updatedPosition.id, updatedPosition.takeProfit);
             if (onExecuted) {
                 onExecuted(result);
             }
@@ -56,115 +65,103 @@ const TradingActions = ({ position, onExecuted, onOrderPlaced }) => {
         }
     };
 
-    const handlePlaceOrder = async () => {
-        try {
-            const result = await placeOrder({ ...orderDetails, positionId: position.id });
-            if (onOrderPlaced) {
-                onOrderPlaced(result);
-            }
-        } catch (err) {
-            console.error('Order placement failed:', err);
-        }
-    };
-
     return (
         <div className="trading-actions-container">
-            <h3>Exit Trades</h3>
-            <div className="field-group">
-                <label>Take Profit (Price):</label>
-                <input
-                    type="number"
-                    value={updatedPosition.takeProfit}
-                    onChange={(e) => handleFieldChange('price', parseFloat(e.target.value))}
-                />
+            <h3>Position Management</h3>
+            
+            {/* Stop Loss Section */}
+            <div className="section stop-loss">
+                <h4>Stop Loss</h4>
+                <div className="field-group">
+                    <label>Price:</label>
+                    <input
+                        type="number"
+                        value={updatedPosition.stopLoss || ''}
+                        onChange={(e) => handleFieldChange('price', e.target.value, 'stopLoss')}
+                        className={!validation.stopLoss.isValid ? 'invalid' : ''}
+                    />
+                </div>
+                <div className="field-group">
+                    <label>Pips:</label>
+                    <input
+                        type="number"
+                        value={updatedPosition.stopLossPips || ''}
+                        onChange={(e) => handleFieldChange('pips', e.target.value, 'stopLoss')}
+                    />
+                </div>
+                <div className="field-group">
+                    <label>Percentage:</label>
+                    <input
+                        type="number"
+                        value={updatedPosition.stopLossPercentage || ''}
+                        onChange={(e) => handleFieldChange('percentage', e.target.value, 'stopLoss')}
+                    />
+                </div>
+                <div className="field-group">
+                    <label>Balance Impact:</label>
+                    <input
+                        type="number"
+                        value={updatedPosition.stopLossBalance || ''}
+                        onChange={(e) => handleFieldChange('balance', e.target.value, 'stopLoss')}
+                    />
+                </div>
+                {!validation.stopLoss.isValid && (
+                    <div className="error-message">{validation.stopLoss.message}</div>
+                )}
             </div>
-            <div className="field-group">
-                <label>Stop Loss (Price):</label>
-                <input
-                    type="number"
-                    value={updatedPosition.stopLoss}
-                    onChange={(e) => handleFieldChange('stopLoss', parseFloat(e.target.value))}
-                />
-            </div>
-            <div className="field-group">
-                <label>Pips:</label>
-                <input
-                    type="number"
-                    value={updatedPosition.pips}
-                    onChange={(e) => handleFieldChange('pips', parseFloat(e.target.value))}
-                />
-            </div>
-            <div className="field-group">
-                <label>Percentage:</label>
-                <input
-                    type="number"
-                    value={updatedPosition.percentage}
-                    onChange={(e) => handleFieldChange('percentage', parseFloat(e.target.value))}
-                />
-            </div>
-            <div className="field-group">
-                <label>Balance Impact:</label>
-                <input
-                    type="number"
-                    value={updatedPosition.balanceImpact}
-                    onChange={(e) => handleFieldChange('balanceImpact', parseFloat(e.target.value))}
-                />
-            </div>
-            {takeProfitError && <div className="error-message">{takeProfitError}</div>}
-            <button
-                onClick={handleTakeProfitExecution}
-                disabled={isExecuting}
-                className="take-profit-button"
-            >
-                {isExecuting ? 'Executing...' : 'Execute Take Profit'}
-            </button>
 
-            <h3>Pending Orders</h3>
-            <div className="field-group">
-                <label>Order Type:</label>
-                <select
-                    value={orderDetails.type}
-                    onChange={(e) => handleFieldChange('type', e.target.value)}
+            {/* Take Profit Section */}
+            <div className="section take-profit">
+                <h4>Take Profit</h4>
+                <div className="field-group">
+                    <label>Price:</label>
+                    <input
+                        type="number"
+                        value={updatedPosition.takeProfit || ''}
+                        onChange={(e) => handleFieldChange('price', e.target.value, 'takeProfit')}
+                        className={!validation.takeProfit.isValid ? 'invalid' : ''}
+                    />
+                </div>
+                <div className="field-group">
+                    <label>Pips:</label>
+                    <input
+                        type="number"
+                        value={updatedPosition.takeProfitPips || ''}
+                        onChange={(e) => handleFieldChange('pips', e.target.value, 'takeProfit')}
+                    />
+                </div>
+                <div className="field-group">
+                    <label>Percentage:</label>
+                    <input
+                        type="number"
+                        value={updatedPosition.takeProfitPercentage || ''}
+                        onChange={(e) => handleFieldChange('percentage', e.target.value, 'takeProfit')}
+                    />
+                </div>
+                <div className="field-group">
+                    <label>Balance Impact:</label>
+                    <input
+                        type="number"
+                        value={updatedPosition.takeProfitBalance || ''}
+                        onChange={(e) => handleFieldChange('balance', e.target.value, 'takeProfit')}
+                    />
+                </div>
+                {!validation.takeProfit.isValid && (
+                    <div className="error-message">{validation.takeProfit.message}</div>
+                )}
+            </div>
+
+            {takeProfitError && <div className="error-message">{takeProfitError}</div>}
+            
+            <div className="actions">
+                <button
+                    onClick={handleTakeProfitExecution}
+                    disabled={isExecuting || !validation.takeProfit.isValid}
+                    className="take-profit-button"
                 >
-                    <option value="">Select Order Type</option>
-                    <option value="buyStop">Buy Stop</option>
-                    <option value="buyLimit">Buy Limit</option>
-                    <option value="sellStop">Sell Stop</option>
-                    <option value="sellLimit">Sell Limit</option>
-                </select>
+                    {isExecuting ? 'Executing...' : 'Execute Take Profit'}
+                </button>
             </div>
-            <div className="field-group">
-                <label>Price:</label>
-                <input
-                    type="number"
-                    value={orderDetails.price}
-                    onChange={(e) => handleFieldChange('price', parseFloat(e.target.value))}
-                />
-            </div>
-            <div className="field-group">
-                <label>Stop Loss:</label>
-                <input
-                    type="number"
-                    value={orderDetails.stopLoss}
-                    onChange={(e) => handleFieldChange('stopLoss', parseFloat(e.target.value))}
-                />
-            </div>
-            <div className="field-group">
-                <label>Take Profit:</label>
-                <input
-                    type="number"
-                    value={orderDetails.takeProfit}
-                    onChange={(e) => handleFieldChange('takeProfit', parseFloat(e.target.value))}
-                />
-            </div>
-            {orderError && <div className="error-message">{orderError}</div>}
-            <button
-                onClick={handlePlaceOrder}
-                disabled={isPlacingOrder}
-                className="place-order-button"
-            >
-                {isPlacingOrder ? 'Placing Order...' : 'Place Order'}
-            </button>
         </div>
     );
 };

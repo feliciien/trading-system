@@ -323,7 +323,7 @@ const TradingPage = ({
                                 ask[getBidIndex(selectedSymbol)],
                                 bid[getBidIndex(selectedSymbol)],
                                 10
-                              ).toFixed(4)}
+                              )}
                             </p>
                           </button>
                           <p style={{ fontSize: '12px', color: 'white' }}>
@@ -346,7 +346,7 @@ const TradingPage = ({
                                 ask[getBidIndex(selectedSymbol)],
                                 bid[getBidIndex(selectedSymbol)],
                                 10
-                              ).toFixed(4)}
+                              )}
                             </p>
                           </button>
                         </div>

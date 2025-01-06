@@ -40,152 +40,96 @@ const Item = styled(Paper)(({ theme }) => ({
   borderRadius: '10px'
 }));
 
+const defaultSymbols = ['EURUSD', 'USDJPY', 'GBPUSD', 'USDCHF', 'AUDUSD', 'USDCAD'];
+
 const Trading = () => {
   const [isAuth, setIsAuth] = useState(true);
   const [selectedSymbol, setSelectedSymbol] = useState('EURUSD');
-  const [symbols, setSymbols] = useState([]);
+  const [symbols, setSymbols] = useState(defaultSymbols);
   const [bid, setBid] = useState([0, 0, 0, 0, 0, 0]);
   const [ask, setAsk] = useState([0, 0, 0, 0, 0, 0]);
   const [APIs, setAPIs] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [balance, setBalance] = React.useState(10000);
-  const [amount, setAmount] = React.useState('0.01');
-  const [stopLoss, setStopLoss] = React.useState(0);
-  const [takeProfit, setTakeProfit] = React.useState(0);
-  const [marginUsed, setMarginUsed] = React.useState(0);
-  const [marginAvailable, setMarginAvailable] = React.useState(0);
-  const [openPositionsData, setOpenPositionsData] = React.useState([]);
+  const [useSimulator, setUseSimulator] = useState(false);
+  const [balance, setBalance] = useState(10000);
+  const [amount, setAmount] = useState(0.01);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [activeGroup, setActiveGroup] = useState('Popular');
+  const [openPositionsData, setOpenPositionsData] = useState([]);
+  const [marginUsed, setMarginUsed] = useState(0);
+  const [marginAvailable, setMarginAvailable] = useState(balance);
 
-  const user = useSelector((state) => state.auth.user);
+  // Group symbols by category
+  const groupedSymbols = {
+    Popular: ['EURUSD', 'USDJPY', 'GBPUSD', 'USDCHF', 'AUDUSD', 'USDCAD'],
+    Forex: ['EURUSD', 'USDJPY', 'GBPUSD', 'USDCHF', 'AUDUSD', 'USDCAD', 'NZDUSD', 'EURGBP', 'EURJPY'],
+    Metals: ['XAUUSD', 'XAGUSD', 'XPTUSD', 'XPDUSD'],
+    Crypto: ['BTCUSD', 'ETHUSD', 'LTCUSD', 'XRPUSD'],
+    Indices: ['US30', 'SPX500', 'NAS100', 'UK100', 'GER30', 'JPN225']
+  };
 
-  const [activeGroup, setActiveGroup] = React.useState(null);
-  const [menuVisible, setMenuVisible] = React.useState(false);
-  const groupedSymbols = symbols.reduce((acc, value) => {
-    const group = acc.find((g) => g.assetName === value.assetName);
-    if (group) {
-      group.symbols.push(value);
-    } else {
-      acc.push({ assetName: value.assetName, symbols: [value] });
-    }
-    return acc;
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [symbolsData, apisData] = await Promise.all([
+          fetchSymbols(),
+          fetchAPIs()
+        ]);
+        
+        if (symbolsData && symbolsData.length > 0) {
+          setSymbols(symbolsData);
+        }
+        
+        if (apisData) {
+          setAPIs(apisData);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
+
+  const handleAccountChange = (account) => {
+    setBalance(account.balance);
+    setMarginAvailable(account.balance - marginUsed);
+  };
+
+  const handleOption = (option) => {
+    setAmount(option);
+  };
+
+  const getBidIndex = (symbol) => {
+    return symbols.findIndex((s) => s === symbol);
+  };
+
+  const calculateProfit = (askPrice, bidPrice, quantity = 1) => {
+    if (!askPrice || !bidPrice) return '0.00';
+    const profit = (bidPrice - askPrice) * quantity * 100000;
+    return Number(profit).toFixed(4);
+  };
+
+  const calculateLoss = (askPrice, bidPrice, quantity = 1) => {
+    if (!askPrice || !bidPrice) return '0.00';
+    const loss = (askPrice - bidPrice) * quantity * 100000;
+    return Number(loss).toFixed(4);
+  };
+
   const handleMouseEnter = () => {
     setMenuVisible(true);
   };
 
   const handleMouseLeave = () => {
     setMenuVisible(false);
-    setActiveGroup(null); // Reset active group on leave
   };
-  const handleNaN = (value) => {
-    return isNaN(value) ? 0 : value;
-  };
-  const handleOption = (option) => {
-    const data = {
-      amount: amount,
-      symbol: selectedSymbol,
-      stopLoss: stopLoss,
-      takeProfit: takeProfit,
-      option: option,
-      leverage: 1
-    };
-    console.log('data', data);
-    axiosInstance
-      .post('/createPosition', data)
-      .then((res) => {
-        if (res.data.state) {
-          if (res.data.state != 'Your balance is not enough') {
-            setIsAuth(false);
-            localStorage.removeItem('tradeToken');
-            window.location.reload();
-          }
-          return;
-        }
-        // console.log("data : ", res.data);
-        const { positions, balance, margin } = res.data;
-        console.log('Hello res', res);
-        setOpenPositionsData(positions);
-        setBalance(handleNaN(balance));
-        setMarginUsed(handleNaN(margin));
-        setMarginAvailable(handleNaN(balance) - handleNaN(margin));
-      })
-      .catch((err) => {
-        console.log('Axios Error with ', err);
-      });
-  };
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const symbolsData = await fetchSymbols();
-        console.log(symbolsData, 'SymbolData')
-        if (symbolsData) {
-          setSymbols(symbolsData);
-        }
-
-        const apisData = await fetchAPIs();
-        if (apisData) {
-          setAPIs(apisData);
-        }
-
-        const tradingData = await fetchTradingDatas();
-        if (tradingData?.accounts) {
-          setAccounts(tradingData.accounts);
-        }
-      } catch (error) {
-        console.error('Error fetching initial data:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, [balance]);
-
-  const handleAccountChange = (e) => {
-    const selectedAccount = accounts.find(
-      (account) => account.token === e.target.value
-    );
-    if (selectedAccount) {
-      localStorage.setItem('tradeToken', selectedAccount.token);
-    }
-    setLoading(true);
-    setTimeout(() => setLoading(false), 5000);
-  };
-  const getBidIndex = (symbol) => {
-    const index = symbols.findIndex((sym) => sym.code === symbol);
-    return index;
-  };
-  const calculateProfit = (entryPrice, exitPrice, quantity) => {
-    return (exitPrice - entryPrice) * quantity;
-  };
-
-  const calculateLoss = (entryPrice, exitPrice, quantity) => {
-    return (entryPrice - exitPrice) * quantity;
-  };
-
-  const calculateTicks = (entryPrice, exitPrice, tickSize) => {
-    const priceChange = exitPrice - entryPrice;
-    return priceChange / tickSize;
-  };
-
-  const [useSimulator, setUseSimulator] = useState(() => {
-    const saved = localStorage.getItem('useSimulator');
-    return saved === null ? true : JSON.parse(saved);  // Default to true if not set
-  });
-
-  useEffect(() => {
-    localStorage.setItem('useSimulator', JSON.stringify(useSimulator));
-    // Trigger API endpoint change when simulator toggle changes
-    if (useSimulator) {
-        console.log('Switching to simulator mode');
-    } else {
-        console.log('Switching to live mode');
-    }
-  }, [useSimulator]);
 
   return (
-    <TradingPage 
+    <TradingPage
       setIsAuth={setIsAuth}
       setActiveGroup={setActiveGroup}
       loading={loading}

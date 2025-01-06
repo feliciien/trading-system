@@ -15,6 +15,7 @@ const {Symbols} = require("./models");
 const global = require('./config/global');
 const tradermadeMock = require('./mockApi/tradermadeSimulator');
 const equityRoutes = require('./routes/equityRoutes');
+const orderRouter = require('./routes/orderRouter');
 
 const app = express();
 
@@ -47,22 +48,34 @@ const startServer = async () => {
     });
     app.use(i18n.init);
 
+    // Request logging middleware
+    app.use((req, res, next) => {
+        if (!req.url.startsWith('/static') && !req.url.includes('/health')) {
+            console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`, {
+                body: req.body,
+                headers: req.headers
+            });
+        }
+        next();
+    });
+
+    // Mount routes
+    app.use("/api", userRouter);
+    app.use("/admin", adminRouter);
+    app.use('/api', equityRoutes);
+    app.use('/api/orders', orderRouter);
+    await loaders({ app });
+
+    // Error handling middleware
     app.use((err, req, res, next) => {
+        console.error('Error:', err);
         if (err.code === 'EBADCSRFTOKEN') {
             res.status(403).send('CSRF Attack Detected');
         } else if (err instanceof SyntaxError) {
             res.status(400).send("JSON_ERROR");
         } else {
-            next(err); 
+            next(err);
         }
-    });
-
-    app.use((req, res, next) => {
-        // Only log non-static requests and exclude health checks
-        if (!req.url.startsWith('/static') && !req.url.includes('/health')) {
-            console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-        }
-        next();
     });
 
     app.use((err, req, res, next) => {
@@ -73,10 +86,16 @@ const startServer = async () => {
         });
     });
 
-    app.use("/api", userRouter);
-    app.use("/admin", adminRouter);
-    app.use('/api', equityRoutes);
-    await loaders({ app });
+    // 404 handler - must be last
+    app.use((req, res) => {
+        console.log('404 Not Found:', {
+            method: req.method,
+            url: req.url,
+            body: req.body,
+            headers: req.headers
+        });
+        res.status(404).json({ detail: "Not Found" });
+    });
 
     server.listen(config.port, () => {
         logger("info", "Server", `Server is started on ${config.port} port`);
